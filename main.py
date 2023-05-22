@@ -42,24 +42,24 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
     return_list=manager.list()
 
 
-    multiprocessing_core=3 # 병럴 처리 몇 개로 할 건지 결정
+    multiprocessing_core=1 # 병럴 처리 몇 개로 할 건지 결정
     processing=[] # join함수를 쓰기 위함.
 
-    '''유사어 대치'''
+    '''유의어 대치'''
     for i in range(multiprocessing_core): # 문장 별로 쪼개서 넣는게 낫지 않을까????
         future_bundle=((len(user_word_list)//multiprocessing_core))*(i+1)
         current_bundle=((len(user_word_list)//multiprocessing_core))*(i) # current_bundle은 현재 bundle의 시작점을 말함.
 
         if i==0:
             print(user_word_list[: future_bundle], '첫 번째 코어')
-            th=Process(target=find_to_dict.find_word_many, args=((user_word_list[: future_bundle]),(user_word_part_of_list[: future_bundle]),return_list))
+            th=Process(target=find_to_dict.find_word_many, args=((user_word_list[: future_bundle]),(user_word_part_of_list[: future_bundle]),return_list, i))
             
         elif type(len(user_word_list)/multiprocessing_core)!= 'int' and i==multiprocessing_core-1: # muliti core 수랑 user word list 수를 나눌 때 딱 안 떨어지면 마지막 인덱스를 처리 못해서 이 코드를 작성함.
             print((user_word_list[current_bundle: ]),f'{i+1}번째 코어')
-            th=Process(target=find_to_dict.find_word_many, args=((user_word_list[current_bundle: ]),(user_word_part_of_list[current_bundle: ]),return_list))
+            th=Process(target=find_to_dict.find_word_many, args=((user_word_list[current_bundle: ]),(user_word_part_of_list[current_bundle: ]),return_list, i))
         else:
             print(user_word_list[current_bundle : future_bundle], f'{i+1}번째 코어')
-            th=Process(target=find_to_dict.find_word_many, args=((user_word_list[current_bundle : future_bundle]),(user_word_part_of_list[current_bundle : future_bundle]),return_list))
+            th=Process(target=find_to_dict.find_word_many, args=((user_word_list[current_bundle : future_bundle]),(user_word_part_of_list[current_bundle : future_bundle]),return_list, i))
         processing.append(th)
         th.start()
 
@@ -69,11 +69,41 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
         print(f'process{num+1} is over.')
     
     '''동음이의어 처리'''
+
     
+    result_list=[] # 멀티 프로세싱을 사용할 때 return list안의 자료들이 뒤죽박죽 셖여서 제대로 작동을 하지 않는다.
     
-    result_list=[]
-    for num in range(multiprocessing_core):
-        result_list.extend(return_list[num])
+    used_index=[]
+    where_return_list__element__index=[]
+     # return list에서 현재 처리까지 처리한 요소 인덱스
+    
+    #print('\nreturn list 요소 정리 시작\n')
+
+    for processing_index in range(multiprocessing_core): # for 문을 사용하면 안되겠네...
+        # list(return_list__element.keys())[0]  현재 몇 코어에서 온 결과값인지 알 수 있음.
+        return_list_index=0
+        while return_list_index <= multiprocessing_core-1:
+            return_list__element=return_list[return_list_index]
+            return_list__element__index=list(return_list__element.keys())[0]
+            if  processing_index == return_list__element__index and return_list_index not in used_index: # 제대로 찾았을 때
+                used_index.append(return_list__element__index) # 이미 처리한 return_list_index이 무엇인지 알기 위함이다.
+                where_return_list__element__index.append({processing_index: return_list_index}) # return_list_index는 return list안에 들어 있는 각 리스트들이 몇 번 째인지 나타낸 것이다. 고로, 읽는 방법은 processing_index에 해당하는 return_list__element__index을 가지고 있는 return list안의 리스트의 index값은 return_list_index라는 말이다.
+                result_list.extend(list(return_list__element.values())[0])
+                 # 이 의미는 정상적으로 찾았으니, 다음 while문에서는 return_list_index+1번째부터 찾으라는 말이다.
+                #print('while statement must be break')
+                break
+                # break문 해버리면 for 문까지 깨져 버리는 듯 하다.
+            else:
+                #print('while statement still alive')
+                return_list_index+=+1
+        # break으로 while문이 깨졌을 때
+        return_list_index+=+1 # return_list_num번째까지는 처리했으니, 그 다음부터 처리하라는 말이 된다.
+            
+    '''
+    print(used_index) # used_index가 오름차순으로 있어야 성공한 것이다.
+    print(where_return_list__element__index)
+    '''
+
     '''새로운 글 만들기'''
     split_user_texts=user_text.split()
     new_texts=[]
@@ -98,7 +128,7 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
             new_texts.append(join_jamos(jamo_split_user_text))
             result_list_num=result_list_num+1
         else: # targeting이 안되었을 때
-            
+            #print('processed wod :',processed_word, 'user text: ', split_user_text)
             # 구지 자모 분리 할 필요 없이 바로 new_texts에 넣는다.
             if processed_word=='따르' and split_user_text=='따라':
                 print(jamo_processed_word, jamo_split_user_text)
@@ -107,8 +137,6 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
     print(new_texts)
     end = time.time() # 프로그램 끝나는 시간 계산.
 
-
-    print('main.py에서 받은 결과물')
     excuted_word_num=0
     for list in return_list:
         excuted_word_num+=len(list)
