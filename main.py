@@ -14,13 +14,13 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
     
     start = time.time()
 
-    user_text='크로마토그래피는 혼합물을 구성하는 성분을 분리하고 분석하는 기술로, 화학 물질의 정량 및 정성 분석에 사용됩니다. 크로마토그래피는 샘플을 이동시키는 이동 상으로부터 특정 성분을 분리하는 방식으로 작동합니다. 이를 위해 정지 상, 이동 상, 그리고 분석 대상인 샘플이 필요합니다. 주로 액체 크로마토그래피(LC)와 가스 크로마토그래피(GC)가 사용되며, 각각은 액체와 기체 상에서 분리가 이루어집니다. 크로마토그래피는 다양한 분야에서 활용되며, 정확하고 신속한 분석 결과를 제공합니다.'
+    user_text='커피나무, 차, 카카오 등에 함유된 퓨린 유도체 물질로, 흰색 고체이며 쓴맛을 낸다. 식물내의 카페인(caffeine)은 해충을 막아 주는 역할을 한다. 사람이 카페인을 섭취할 경우 카페인은 중추 신경계에 자극제로 작용하여 각성 효과를 낸다. 카페인은 신경 전달 물질의 분비를 억제 하는 아데노신의 활성을 억제하여 각성제로서의 역할을 한다. 또한 혈류에 영향을 주어 혈압 상승, 두근거림을 일으킬 수 있고, 이뇨 작용을 돕는다. 카페인 섭취는 신진대사 촉진. 집중력 향상, 장기적으로는 당뇨와 심혈관계 질환 발병 확률을 낮춘다고 알려졌다. 반대로 불면증을 유발할 수 있고, 혈류에 영향을 주는 만큼 심장 질환이 있는 사람의 경우 카페인 섭취는 좋지 않다.'
 
     api_key=''
     #modified_text=parlanceGPT.change_parlance(user_text=user_text, api_key=api_key)
     modified_text=user_text
     
-
+    
     user_word_list=[]
     user_word_part_of_list=[]
 
@@ -36,13 +36,13 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
         user_word_part_of_list.append(user_word_part_of_list__part_of)
 
 
-    print(stemmer(modified_text),'\n',f'처리할 단어 수 : {len(stemmer(modified_text))}')
+    print('\n',f'처리할 단어 수 : {len(stemmer(modified_text))}')
     
     manager = Manager()
     return_list=manager.list()
 
 
-    multiprocessing_core=1 # 병럴 처리 몇 개로 할 건지 결정
+    multiprocessing_core=5 # 병럴 처리 몇 개로 할 건지 결정
     processing=[] # join함수를 쓰기 위함.
 
     '''유의어 대치'''
@@ -103,13 +103,16 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
     print(used_index) # used_index가 오름차순으로 있어야 성공한 것이다.
     print(where_return_list__element__index)
     '''
-
+    #print(result_list)
     '''새로운 글 만들기'''
     split_user_texts=user_text.split()
     new_texts=[]
     result_list_num=0
+   
     for split_user_text in split_user_texts: # 띄어쓰기 단위로 user가 준 글을 자른다.
+        
         list__value=result_list[result_list_num]
+
         list__value=list(list__value.values())[0][0] # list의 첫 번째 √alue를 뜻한다. 일단은 가장 유력한 동음이의어부터 사용해본다. 이를 의미하는 것이 마지막 인덱스다. 첫번쨰 인덱스는 list()로 생긴 리스트를 까려고 만든 것이다.
         # list__value는 dict이다. 
         
@@ -117,29 +120,26 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
         processed_word="".join(processed_word)
         # back_to_stemmer에 의해 가공된 단어를 추출했다. processed_word의 타입은 str이다.
         processed_word__value=list__value[processed_word] # 이제 {'품사' :, '유의어': []} 까지 온 것이다. processed_word__value는 dict이다.
-        synonyms=processed_word__value['유의어'] # 유의러 리스트를 뽑아왔다.
+        synonyms=processed_word__value['유의어'] # 유의어 리스트를 뽑아왔다.
 
         '''자모 분리로 타겟팅하기'''
         jamo_split_user_text=j2hcj(h2j(split_user_text))
         jamo_processed_word=j2hcj(h2j(processed_word))
-        if jamo_processed_word in jamo_split_user_text or jamo_processed_word[:-1] in jamo_split_user_text: # 제대로 targeting이 되었을 때. 자모 분리할 떄 jamo_processed_word 마지막 문자는 눈감아 줘야 할 떄가 있다.
+        if jamo_processed_word in jamo_split_user_text or jamo_processed_word[:-1] in jamo_split_user_text and result_list_num <= len(result_list): # 제대로 targeting이 되었을 때. 자모 분리할 떄 jamo_processed_word 마지막 문자는 눈감아 줘야 할 떄가 있다.
             jamo_random_synonym=j2hcj(h2j(random.choice(synonyms))) # 무작위로 뽑은 유의어를 자모 분리 시켰다.
             jamo_split_user_text=jamo_split_user_text.replace(jamo_processed_word, jamo_random_synonym)
             new_texts.append(join_jamos(jamo_split_user_text))
-            result_list_num=result_list_num+1
+            if result_list_num < len(result_list)-1: # result_list_num이 result_list의 크기를 넘어가지 않게 하기 위함.
+                result_list_num=result_list_num+1
+
         else: # targeting이 안되었을 때
             #print('processed wod :',processed_word, 'user text: ', split_user_text)
             # 구지 자모 분리 할 필요 없이 바로 new_texts에 넣는다.
-            if processed_word=='따르' and split_user_text=='따라':
-                print(jamo_processed_word, jamo_split_user_text)
+            
             new_texts.append(split_user_text)
     new_texts=' '.join(new_texts)
     print(new_texts)
     end = time.time() # 프로그램 끝나는 시간 계산.
 
-    excuted_word_num=0
-    for list in return_list:
-        excuted_word_num+=len(list)
-        '''for word in list:
-            print(word, '\n')'''
-    print(f"단어 처리 수 : {excuted_word_num} \n 작동 시간:{end - start} sec")
+    
+    print(f"단어 처리 수 : {len(result_list)} \n 작동 시간:{end - start} sec")
