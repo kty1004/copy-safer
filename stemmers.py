@@ -21,14 +21,17 @@ def stemmer(text):  #  target의 단어들을 반환함.
 
 
     text_taggers=tagger.pos(text) # 예시:{'예쁘':'VA'}
-    #print(text_taggers)
-
+    print(text_taggers)
+    
     
     required_synonym_substitution={}
     
-
+    pass_num=[] # text_taggers의 num중 pass할 num을 저장한다.
     for num in range(len(text_taggers)):
         
+        if num in pass_num:
+            continue
+
         if text_taggers[num][1] in target: # target에 있는 것들을 찾는다. 이는 key든 value든 다 찾는다.
             # 형용사 처리
             processed_words={}
@@ -37,8 +40,14 @@ def stemmer(text):  #  target의 단어들을 반환함.
                 ''' 이 때는 original_word가 text_taggers[num-1][0]이 되어야 한다.'''
                 original_word=text_taggers[num-1][0] # num-1을 하지 않으면 접미사가 original word로 된다.
                 processed_words[f'{text_taggers[num-1][0]}'+'하다']=target['VA'] # 파생접미사의 바로 앞의 놈을 가져온다. 이후 품사를 adj라고 명시한다.
+            elif text_taggers[num][1]=='NNG' and text_taggers[num+1][1]=='VV': # 우려낸 홍차 에서 우려+낸 같은 단어를 처리하기 위함.
+                processed_words[f'{text_taggers[num][0]+text_taggers[num+1][0]}'+'다']=target[text_taggers[num+1][1]] # 우려+ 낸일 때 우려낸의 품사는 동사다. 고로 내다의 품사를 우려낸의 품사로 칭한다.
+                original_word=text_taggers[num][0]+text_taggers[num+1][0]
+                
+                pass_num.append(num+1) # 우려낸을 위와 같이 처리했다면 내다가 처리되지 않도록 해야 한다.
+            
             elif text_taggers[num][1]=='VA' or text_taggers[num][1]=='VV': # 형용사와 동사 처리
-                processed_words[f'{text_taggers[num][0]}'+'다']=target[text_taggers[num][1]]
+                processed_words[f'{text_taggers[num][0]}'+'다']=target[text_taggers[num][1]]=target[text_taggers[num][1]]
                 
             else: 
                 '''형용사 같이 특별한 처리가 필요하지 않은 단어들 처리'''
