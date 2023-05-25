@@ -14,7 +14,7 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
     
     start = time.time()
 
-    user_text='커피나무, 차, 카카오 등에 함유된 퓨린 유도체 물질로, 흰색 고체이며 쓴맛을 낸다. 식물내의 카페인(caffeine)은 해충을 막아 주는 역할을 한다. 사람이 카페인을 섭취할 경우 카페인은 중추 신경계에 자극제로 작용하여 각성 효과를 낸다. 카페인은 신경 전달 물질의 분비를 억제 하는 아데노신의 활성을 억제하여 각성제로서의 역할을 한다. 또한 혈류에 영향을 주어 혈압 상승, 두근거림을 일으킬 수 있고, 이뇨 작용을 돕는다. 카페인 섭취는 신진대사 촉진. 집중력 향상, 장기적으로는 당뇨와 심혈관계 질환 발병 확률을 낮춘다고 알려졌다. 반대로 불면증을 유발할 수 있고, 혈류에 영향을 주는 만큼 심장 질환이 있는 사람의 경우 카페인 섭취는 좋지 않다.'
+    user_text='홍차에는 플라보노이드 및 안토시아닌과 같은 다양한 색소 물질이 포함되어 있어 홍차의 색상을 결정한다. 실험 중에 색소 물질은 우려낸 홍차 용액에 용해된다. 그러나 추출 공정이 진행되고 메틸렌 클로라이드가 첨가됨에 따라 이러한 안료는 선택적으로 수성층으로 분할된다. 후속 추출 및 분리 단계는 대부분 수성 상에 남아 있기 때문에 안료 물질을 제거하는 데 추가로 도움이 된다.'
 
     api_key=''
     #modified_text=parlanceGPT.change_parlance(user_text=user_text, api_key=api_key)
@@ -34,7 +34,6 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
         user_word_part_of_list__part_of=''.join(user_word_part_of_list__part_of)
         user_word_list.append(user_word_part_of_list__word)
         user_word_part_of_list.append(user_word_part_of_list__part_of)
-
 
     print('\n',f'처리할 단어 수 : {len(stemmer(modified_text))}')
     
@@ -85,7 +84,7 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
         while return_list_index <= multiprocessing_core-1:
             return_list__element=return_list[return_list_index]
             return_list__element__index=list(return_list__element.keys())[0]
-            if  processing_index == return_list__element__index and return_list_index not in used_index: # 제대로 찾았을 때
+            if  processing_index == return_list__element__index and return_list__element__index not in used_index: # 제대로 찾았을 때
                 used_index.append(return_list__element__index) # 이미 처리한 return_list_index이 무엇인지 알기 위함이다.
                 where_return_list__element__index.append({processing_index: return_list_index}) # return_list_index는 return list안에 들어 있는 각 리스트들이 몇 번 째인지 나타낸 것이다. 고로, 읽는 방법은 processing_index에 해당하는 return_list__element__index을 가지고 있는 return list안의 리스트의 index값은 return_list_index라는 말이다.
                 result_list.extend(list(return_list__element.values())[0])
@@ -99,11 +98,12 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
         # break으로 while문이 깨졌을 때
         return_list_index+=+1 # return_list_num번째까지는 처리했으니, 그 다음부터 처리하라는 말이 된다.
             
-    '''
-    print(used_index) # used_index가 오름차순으로 있어야 성공한 것이다.
-    print(where_return_list__element__index)
-    '''
+    
+    # print(used_index) # used_index가 오름차순으로 있어야 성공한 것이다.
+    # print(where_return_list__element__index)
+    
     #print(result_list)
+    
     '''새로운 글 만들기'''
     split_user_texts=user_text.split()
     new_texts=[]
@@ -112,11 +112,13 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
     for split_user_text in split_user_texts: # 띄어쓰기 단위로 user가 준 글을 자른다.
         
         list__value=result_list[result_list_num]
-
+        # print(list__value)
         list__value=list(list__value.values())[0][0] # list의 첫 번째 √alue를 뜻한다. 일단은 가장 유력한 동음이의어부터 사용해본다. 이를 의미하는 것이 마지막 인덱스다. 첫번쨰 인덱스는 list()로 생긴 리스트를 까려고 만든 것이다.
         # list__value는 dict이다. 
         
         processed_word= list(list__value.keys())
+        #print(processed_word)
+        
         processed_word="".join(processed_word)
         # back_to_stemmer에 의해 가공된 단어를 추출했다. processed_word의 타입은 str이다.
         processed_word__value=list__value[processed_word] # 이제 {'품사' :, '유의어': []} 까지 온 것이다. processed_word__value는 dict이다.
@@ -133,7 +135,7 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
                 result_list_num=result_list_num+1
 
         else: # targeting이 안되었을 때
-            #print('processed wod :',processed_word, 'user text: ', split_user_text)
+            #print('processed wode :',processed_word, 'user text: ', split_user_text)
             # 구지 자모 분리 할 필요 없이 바로 new_texts에 넣는다.
             
             new_texts.append(split_user_text)
