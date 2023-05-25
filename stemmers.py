@@ -21,8 +21,7 @@ def stemmer(text):  #  target의 단어들을 반환함.
 
 
     text_taggers=tagger.pos(text) # 예시:{'예쁘':'VA'}
-    print(text_taggers)
-    
+    # print(text_taggers)
     
     required_synonym_substitution={}
     
@@ -45,7 +44,11 @@ def stemmer(text):  #  target의 단어들을 반환함.
                 original_word=text_taggers[num][0]+text_taggers[num+1][0]
                 
                 pass_num.append(num+1) # 우려낸을 위와 같이 처리했다면 내다가 처리되지 않도록 해야 한다.
-            
+            elif text_taggers[num][1]=='NNG' and text_taggers[num+1][1]=='XSN' and text_taggers[num+2][1][:2]=='JK': # 수성층에서 와 같은 단어 처리하기 위함. 이 때 수성층은 하나의 명사로 봐야 함. jk는 계열을 뜻함.
+                processed_words[f'{text_taggers[num][0]+text_taggers[num+1][0]}']=target[text_taggers[num][1]] # 수성층을 수성+층으로 받아드리는데 이를 하나로 묶고 품사를 수성(명사)에 맞춘다.
+                original_word=text_taggers[num][0]+text_taggers[num+1][0]
+                pass_num.extend([num+1, num+2]) # 우려낸을 위와 같이 처리했다면 내다가 처리되지 않도록 해야 한다.
+
             elif text_taggers[num][1]=='VA' or text_taggers[num][1]=='VV': # 형용사와 동사 처리
                 processed_words[f'{text_taggers[num][0]}'+'다']=target[text_taggers[num][1]]=target[text_taggers[num][1]]
                 
@@ -59,12 +62,19 @@ def stemmer(text):  #  target의 단어들을 반환함.
 
 def back_to_stemmer(word, word_part_of): # 네이버 사전에서 찾은 유의어나 그런 것들 모두 필수 형태소 단위로 분리
     
-    if word_part_of=='adj' and word[-2:]=='하다' and word != '하다': # 형용사일 때 만약 하다가 있을 때
+    '''if word_part_of=='adj' and word[-2:]=='하다' and word != '하다': # 형용사일 때 만약 하다가 있을 때
         proecssed_word=word[: -2]
-        return proecssed_word
-    elif word_part_of=='verb' or word_part_of=='adj': # 형용사와 동사 처리. 얘네들은 뒤가 다로 끝난다.
+        return proecssed_word'''
+    # 네이버 사전에 검색할 때는 단어 뒤에 하다를 붙여서 검색해야 하지만, 단어를 합칠 때는 하다를 삭제할 필요가 없다. 이 때는 다만 삭제하는 게 문법적으로 잘 맞는다.
+    if word_part_of=='verb' or word_part_of=='adj': # 형용사와 동사 처리. 얘네들은 뒤가 다로 끝난다.
         proecssed_word=word[:-1]
         return proecssed_word
     else:
         '''형용사 같이 특별한 처리가 필요하지 않은 단어들 처리할 필요 없다. 즉 단어 자체로 찾을 수 있는 애들을 말한다.'''
         return word
+    
+
+'''
+text='그러나 추출 공정이 진행되고 메틸렌 클로라이드가 첨가됨에 따라 이러한 안료는 선택적으로 수성층으로 분할된다.'
+
+print(stemmer(text))'''
