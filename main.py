@@ -5,19 +5,25 @@ from stemmers import stemmer
 from jamo import h2j, j2hcj
 import random
 from unicode import join_jamos
-# 프로그램 끝나는 시간 계산하려고 불러옴.
+from rich.progress import track
+from rich import print
+from rich.console import Console
+from rich.traceback import install
 import time
-
 from other_tools import find_key_by_value
+
 
 '''multiprocessing''' 
 
 if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니깐 한다.
-    
+    console=Console()
+    install(show_locals=True)
     start = time.time()
 
     user_text='홍차에는 플라보노이드 및 안토시아닌과 같은 다양한 색소 물질이 포함되어 있어 홍차의 색상을 결정한다. 실험 중에 색소 물질은 우려낸 홍차 용액에 용해된다. 그러나 추출 공정이 진행되고 메틸렌 클로라이드가 첨가됨에 따라 이러한 안료는 선택적으로 수성층으로 분할된다. 후속 추출 및 분리 단계는 대부분 수성 상에 남아 있기 때문에 안료 물질을 제거하는 데 추가로 도움이 된다.'
-
+    console.rule('[bold blue]입력받은 텍스트')
+    console.print(f'[bold]{user_text}')
+    console.rule('[bold red]유의어 대치 프로그램 시작')
     api_key=''
     #modified_text=parlanceGPT.change_parlance(user_text=user_text, api_key=api_key)
     modified_text=user_text
@@ -37,7 +43,7 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
         user_word_list.append(user_word_part_of_list__word)
         user_word_part_of_list.append(user_word_part_of_list__part_of)
 
-    print('\n',f'처리할 단어 수 : {len(stemmer(modified_text))}')
+    print('\n',f'처리할 단어 수 : [bold red]{len(stemmer(modified_text))}[/bold red]')
     
     manager = Manager()
     return_list=manager.list()
@@ -45,32 +51,32 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
 
     multiprocessing_core=5 # 병럴 처리 몇 개로 할 건지 결정
     processing=[] # join함수를 쓰기 위함.
-
     '''유의어 대치'''
-    for i in range(multiprocessing_core): # 문장 별로 쪼개서 넣는게 낫지 않을까????
-        future_bundle=((len(user_word_list)//multiprocessing_core))*(i+1)
-        current_bundle=((len(user_word_list)//multiprocessing_core))*(i) # current_bundle은 현재 bundle의 시작점을 말함.
+    with console.status("[bold blue]multiprocessing...") as status:
+        for i in range(multiprocessing_core): # 문장 별로 쪼개서 넣는게 낫지 않을까????
+            future_bundle=((len(user_word_list)//multiprocessing_core))*(i+1)
+            current_bundle=((len(user_word_list)//multiprocessing_core))*(i) # current_bundle은 현재 bundle의 시작점을 말함.
 
-        if i==0:
-            print(user_word_list[: future_bundle], '첫 번째 코어')
-            th=Process(target=find_to_dict.find_word_many, args=((user_word_list[: future_bundle]),(user_word_part_of_list[: future_bundle]),return_list, i))
-            
-        elif type(len(user_word_list)/multiprocessing_core)!= 'int' and i==multiprocessing_core-1: # muliti core 수랑 user word list 수를 나눌 때 딱 안 떨어지면 마지막 인덱스를 처리 못해서 이 코드를 작성함.
-            print((user_word_list[current_bundle: ]),f'{i+1}번째 코어')
-            th=Process(target=find_to_dict.find_word_many, args=((user_word_list[current_bundle: ]),(user_word_part_of_list[current_bundle: ]),return_list, i))
-        else:
-            print(user_word_list[current_bundle : future_bundle], f'{i+1}번째 코어')
-            th=Process(target=find_to_dict.find_word_many, args=((user_word_list[current_bundle : future_bundle]),(user_word_part_of_list[current_bundle : future_bundle]),return_list, i))
-        processing.append(th)
-        th.start()
+            if i==0:
+                print(f'{user_word_list[: future_bundle]} : 첫 번째 코어')
+                th=Process(target=find_to_dict.find_word_many, args=((user_word_list[: future_bundle]),(user_word_part_of_list[: future_bundle]),return_list, i))
+                
+            elif type(len(user_word_list)/multiprocessing_core)!= 'int' and i==multiprocessing_core-1: # muliti core 수랑 user word list 수를 나눌 때 딱 안 떨어지면 마지막 인덱스를 처리 못해서 이 코드를 작성함.
+                print(f'{(user_word_list[current_bundle: ])} : {i+1}번째 코어')
+                th=Process(target=find_to_dict.find_word_many, args=((user_word_list[current_bundle: ]),(user_word_part_of_list[current_bundle: ]),return_list, i))
+            else:
+                print(f'{user_word_list[current_bundle : future_bundle]} : {i+1}번째 코어')
+                th=Process(target=find_to_dict.find_word_many, args=((user_word_list[current_bundle : future_bundle]),(user_word_part_of_list[current_bundle : future_bundle]),return_list, i))
+            processing.append(th)
+            th.start()
 
-
-    for num in range(len(processing)):
-        processing[num].join() # 멀티 프로세싱 종료
-        print(f'process{num+1} is over.')
+        
+        for num in range(len(processing)):
+            processing[num].join() # 멀티 프로세싱 종료
+    
+    '''-----with 문 끝------'''
     
     '''동음이의어 처리'''
-
     result_list=[] # 멀티 프로세싱을 사용할 때 return list안의 자료들이 뒤죽박죽 셖여서 제대로 작동을 하지 않는다.
     
     used_index=[]
@@ -181,7 +187,7 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
                 result_list_num=result_list_num+1
 
         else: # targeting이 안되었을 때
-            print('processed word :',processed_word, 'user text: ', split_user_text)
+            print(f'processed word :[green]{processed_word}[/green], user text: [green]{split_user_text}[/green]')
             # 구지 자모 분리 할 필요 없이 바로 new_texts에 넣는다.
             
             new_texts.append(split_user_text)
@@ -191,7 +197,8 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
 
         raise
     new_texts=' '.join(new_texts)
-    print(new_texts)
+    console.rule('[bold red] 바뀐 텍스트')
+    console.print(f'[bold]{new_texts}')
     end = time.time() # 프로그램 끝나는 시간 계산.
 
     
