@@ -2,16 +2,13 @@ from multiprocessing import Process,Manager
 import find_to_dict
 import parlanceGPT
 from stemmers import stemmer
-from jamo import h2j, j2hcj
-import random
-from unicode import join_jamos
 from rich.progress import track
 from rich import print
 from rich.console import Console
 from rich.traceback import install
 import time
-from other_tools import find_key_by_value
 
+from targeting import targeting_with_result_list
 
 '''multiprocessing''' 
 
@@ -19,7 +16,7 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
     console=Console()
     install(show_locals=True)
     start = time.time()
-
+    randomness=3 # randomness must be bigger than 0.
     user_text='홍차에는 플라보노이드 및 안토시아닌과 같은 다양한 색소 물질이 포함되어 있어 홍차의 색상을 결정한다. 실험 중에 색소 물질은 우려낸 홍차 용액에 용해된다. 그러나 추출 공정이 진행되고 메틸렌 클로라이드가 첨가됨에 따라 이러한 안료는 선택적으로 수성층으로 분할된다. 후속 추출 및 분리 단계는 대부분 수성 상에 남아 있기 때문에 안료 물질을 제거하는 데 추가로 도움이 된다.'
     console.rule('[bold blue]입력받은 텍스트')
     console.print(f'[bold]{user_text}')
@@ -77,6 +74,9 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
     '''-----with 문 끝------'''
     
     '''동음이의어 처리'''
+    
+    
+    '''return list 정리'''
     result_list=[] # 멀티 프로세싱을 사용할 때 return list안의 자료들이 뒤죽박죽 셖여서 제대로 작동을 하지 않는다.
     
     used_index=[]
@@ -84,8 +84,8 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
      # return list에서 현재 처리까지 처리한 요소 인덱스
     
     #print('\nreturn list 요소 정리 시작\n')
-
-    for processing_index in range(multiprocessing_core): # for 문을 사용하면 안되겠네...
+    
+    for processing_index in range(multiprocessing_core): 
         # list(return_list__element.keys())[0]  현재 몇 코어에서 온 결과값인지 알 수 있음.
         return_list_index=0
         while return_list_index <= multiprocessing_core-1:
@@ -111,94 +111,8 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
     
     #print(result_list)
     
-    '''새로운 글 만들기'''
-
-
-    split_user_texts=user_text.split()
-    new_texts=[]
-    result_list_num=0
-    vowels = ['ㅏ', 'ㅑ', 'ㅓ', 'ㅕ', 'ㅗ', 'ㅛ', 'ㅜ', 'ㅠ', 'ㅡ', 'ㅣ', 'ㅐ', 'ㅔ', 'ㅒ', 'ㅖ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅢ']
-
-    for split_user_text in split_user_texts: # 띄어쓰기 단위로 user가 준 글을 자른다.
-        
-        list__value=result_list[result_list_num]
-        #print(list__value)
-
-
-        list__value=list(list__value.values())[0][0] # list의 첫 번째 √alue를 뜻한다. 일단은 가장 유력한 동음이의어부터 사용해본다. 이를 의미하는 것이 마지막 인덱스다. 첫번쨰 인덱스는 list()로 생긴 리스트를 까려고 만든 것이다.
-        # list__value는 dict이다. 
-        
-        processed_word= list(list__value.keys())
-        #print(processed_word)
-        
-        processed_word="".join(processed_word)
-        # back_to_stemmer에 의해 가공된 단어를 추출했다. processed_word의 타입은 str이다.
-        processed_word__value=list__value[processed_word] # 이제 {'품사' :, '유의어': []} 까지 온 것이다. processed_word__value는 dict이다.
-        synonyms=processed_word__value['유의어'] # 유의어 리스트를 뽑아왔다.
-
-        '''자모 분리로 타겟팅하기: 자모분리를 함으로써 맞춤법을 교정할 것이다.'''
-
-        jamo_split_user_text=j2hcj(h2j(split_user_text))
-        jamo_processed_word=j2hcj(h2j(processed_word))
-        jamo_processed_word2=jamo_processed_word[:-1] # 자모 분리할 떄 jamo_processed_word 마지막 문자는 눈감아 줘야 할 떄가 있다.
-        if jamo_processed_word in jamo_split_user_text or jamo_processed_word2 in jamo_split_user_text and result_list_num <= len(result_list): # 제대로 targeting이 되었을 때. 
-            jamo_random=j2hcj(h2j(random.choice(synonyms))) # 무작위로 뽑은 유의어를 자모 분리 시켰다.
-            jamo_random_synonym=''.join(jamo_random) # 이거 중요하다!!! 코딩 지식!!
-            '''if jamo_processed_word2 in jamo_split_user_text:
-                jamo_processed_word=jamo_processed_word2'''
-            
-            '''--------------'''
-            jamo_split_user_text=jamo_split_user_text.replace(jamo_processed_word, jamo_random_synonym)
-            
-            '''--------------'''
-            jamo_without_random_synonym= jamo_split_user_text.replace(jamo_random_synonym, '') # jamo_random_synonym를 기준으로 jamo_split_user_text 분리
-            
-            target={'이':'가','을':'를','은':'는'} # target의 키가 받침이 있을 때 쓰이는 것이다.
-            if jamo_random_synonym[-1] in vowels: # random synonym이 모음으로 끝날 때
-                '''받침유무에 따라 달라지는 조사 처리.'''
-                if join_jamos(jamo_without_random_synonym) in list(target.keys()): # target에 있을 때
-                    modified_split_with_random_synonym=j2hcj(h2j(target[join_jamos(jamo_without_random_synonym)])).strip()#target의 value를 자모 분리 시킴.
-                    jamo_split_user_text=jamo_random_synonym+modified_split_with_random_synonym
-                    new_texts.append(join_jamos(jamo_split_user_text))
-                    #print(jamo_split_user_text)
-                    #raise
-                else: # target에 없을 때
-                    #print(f'{join_jamos(jamo_random_synonym)}가 모음으로 끝나나, {join_jamos(jamo_without_random_synonym)} 에 해당하는 게 target에 적절한 게 없음. 현 위치 : {split_user_text}')
-                    new_texts.append(join_jamos(jamo_split_user_text))
-            else: # random synonym이 자음으로 끝날 때
-                if join_jamos(jamo_without_random_synonym) in list(target.values()): # target에 있을 때
-                    
-                    try:
-                        target_key=find_key_by_value(target, join_jamos(jamo_without_random_synonym)) # 자음으로 끝날 때는 target의 value로 key를 찾고, 이 key를 사용해야 한다.
-                        modified_split_with_random_synonym=j2hcj(h2j(target_key))
-                        jamo_split_user_text=jamo_random_synonym+modified_split_with_random_synonym
-                        new_texts.append(join_jamos(jamo_split_user_text))
-                    except TypeError:
-                        print(join_jamos(jamo_without_random_synonym), '\n', list(target.values()))
-
-                        raise
-                    
-                else: # target에 없을 때
-                    #print(f'{jamo_random_synonym}가 자음으로 끝나나, {jamo_without_random_synonym} 에 해당하는 게 target에 적절한 게 없음. 현 위치 : {split_user_text}')
-                    new_texts.append(join_jamos(jamo_split_user_text))
-
-
-            if result_list_num < len(result_list)-1: # result_list_num이 result_list의 크기를 넘어가지 않게 하기 위함.
-                result_list_num=result_list_num+1
-
-        else: # targeting이 안되었을 때
-            print(f'processed word :[green]{processed_word}[/green], user text: [green]{split_user_text}[/green]')
-            # 구지 자모 분리 할 필요 없이 바로 new_texts에 넣는다.
-            
-            new_texts.append(split_user_text)
-
-    if result_list_num != len(result_list)-1:
-        print('result list에 있는 모든 단어를 사용하지 못함. 사용한 result_list_num : ', result_list_num)
-
-        raise
-    new_texts=' '.join(new_texts)
-    console.rule('[bold red] 바뀐 텍스트')
-    console.print(f'[bold]{new_texts}')
+    '''문법 교정으로 새로운 글 만들기'''
+    new_texts=targeting_with_result_list(user_text=user_text, result_list=result_list, randomness=randomness)
     end = time.time() # 프로그램 끝나는 시간 계산.
 
     
