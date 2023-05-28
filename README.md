@@ -10,4 +10,4 @@
  - 가로 안에 있는 단어는 유의어 처리 안 함.
  - 최적의 multiprocessing core 수를 알아내는 인공지능을 도입.
 
- release 23.5.25
+ release 23.5.28
