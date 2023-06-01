@@ -1,4 +1,4 @@
-from word_crawling import find_word
+from crawling.word_crawling import find_word
 
 def find_word_many(user_word_list,user_word_part_of_list,return_list, processing_num):
     result_dicts=[]

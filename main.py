@@ -1,23 +1,33 @@
 from multiprocessing import Process,Manager
-import find_to_dict
+import crawling.find_to_dict as find_to_dict
 import parlanceGPT
 from stemmers import stemmer
+import time
+
+
+'''rich'''
 from rich.progress import track
 from rich import print
 from rich.console import Console
 from rich.traceback import install
-import time
 
+
+'''머신러닝을 위해 필요한 데이터 수집하는 함수 불러옴.'''
 from targeting import targeting_with_result_list
+from make_data.speed_checking import speed_checking_for_naver_dict
+from make_data.saving_csv import saving_data
 
-'''multiprocessing''' 
+
 
 if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니깐 한다.
     console=Console()
     install(show_locals=True)
+    
+    ping_check=speed_checking_for_naver_dict()
+    
     start = time.time()
     randomness=3 # randomness must be bigger than 0.
-    user_text='홍차에는 플라보노이드 및 안토시아닌과 같은 다양한 색소 물질이 포함되어 있어 홍차의 색상을 결정한다. 실험 중에 색소 물질은 우려낸 홍차 용액에 용해된다. 그러나 추출 공정이 진행되고 메틸렌 클로라이드가 첨가됨에 따라 이러한 안료는 선택적으로 수성층으로 분할된다. 후속 추출 및 분리 단계는 대부분 수성 상에 남아 있기 때문에 안료 물질을 제거하는 데 추가로 도움이 된다.'
+    user_text='화학 반응에서 열은 그 반응의 시작과 끝 상태만으로 결정되며, 도중의 경로에는 관계하지 않는다는 법칙이다. 물리적, 화학적 변화가 일어날 때 어떤 경로를 거쳐 변화가 일어나든지 관계없이 반음에 관여한 총 열량은 보존된다.'
     console.rule('[bold blue]입력받은 텍스트')
     console.print(f'[bold]{user_text}')
     console.rule('[bold red]유의어 대치 프로그램 시작')
@@ -40,7 +50,8 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
         user_word_list.append(user_word_part_of_list__word)
         user_word_part_of_list.append(user_word_part_of_list__part_of)
 
-    print('\n',f'처리할 단어 수 : [bold red]{len(stemmer(modified_text))}[/bold red]')
+    number_of_words_to_process=len(stemmer(modified_text))
+    print('\n',f'처리할 단어 수 : [bold red]{number_of_words_to_process}[/bold red]')
     
     manager = Manager()
     return_list=manager.list()
@@ -48,6 +59,7 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
 
     multiprocessing_core=5 # 병럴 처리 몇 개로 할 건지 결정
     processing=[] # join함수를 쓰기 위함.
+    
     '''유의어 대치'''
     with console.status("[bold blue]multiprocessing...") as status:
         for i in range(multiprocessing_core): # 문장 별로 쪼개서 넣는게 낫지 않을까????
@@ -112,8 +124,12 @@ if __name__=='__main__': # 이걸 왜 해야 하는 거지??? 일단 하라니�
     #print(result_list)
     
     '''문법 교정으로 새로운 글 만들기'''
-    new_texts=targeting_with_result_list(user_text=user_text, result_list=result_list, randomness=randomness)
+    new_texts=targeting_with_result_list(user_text=user_text, result_list=result_list, randomness=randomness, used_index=used_index)
     end = time.time() # 프로그램 끝나는 시간 계산.
 
+    '''머신 러닝을 위한 데이터 수집'''
+    saving_data(MC=multiprocessing_core, text_length=len(user_text), number_of_words_to_process=number_of_words_to_process, naver_dict_ping=ping_check, time=end-start)
+    # 처리할 단어수, 유저 텍스트 길이, 네이버 사전 핑 그리고 멀티코어 수, 총 작동 시간을 csv에 저장할 것이다.
+    
     
     print(f"단어 처리 수 : {len(result_list)} \n 작동 시간:{end - start} sec")

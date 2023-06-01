@@ -19,7 +19,7 @@ def adjust_synonym_list_with_randomness(randomness:int, synonyms): # randomness�
         jamo_random_synonym=''.join(jamo_random) # 이거 중요하다!!! 코딩 지식!! 이렇게 하는 이유는 random함수를 한 번만 실힝시키겠금 하기 위함이다. 이렇게 안 하고 jamo_random을 그대로 쓰면 해당 변수가 호출될 떄마다, random함수가 실행된다.
         return jamo_random_synonym
 
-def targeting_with_result_list(user_text:str, result_list:list, randomness: int):
+def targeting_with_result_list(user_text:str, result_list:list, randomness: int, used_index):
     
     '''새로운 글 만들기'''
 
@@ -74,7 +74,9 @@ def targeting_with_result_list(user_text:str, result_list:list, randomness: int)
 
     if result_list_num != len(result_list)-1:
         print('result list에 있는 모든 단어를 사용하지 못함. 사용한 result_list_num : ', result_list_num)
-
+        
+        print(used_index, ': 오름차순으로 정렬되어야 잘 된 것임.')
+        
         raise
     new_texts=' '.join(new_texts)
     console.rule('[bold red] 바뀐 텍스트')
