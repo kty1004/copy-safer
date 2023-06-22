@@ -16,7 +16,6 @@ from rich.traceback import install
 from targeting import targeting_with_result_list
 from make_data.speed_checking import speed_checking_for_naver_dict
 from make_data.saving_csv import saving_data
-from kss import split_sentences
 import random
 from make_data.make_sentence_data import random_split_senctence
 
